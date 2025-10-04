@@ -1,0 +1,156 @@
+ls:
+
+* README.md
+* access
+* arch_prctl
+* brk
+* close
+* compile_flags.txt
+* docs
+* execve
+* fs.img
+* fstat
+* futex
+* getdents64
+* getrandom
+* ioctl
+* kernel
+* mkfs
+* mmap
+* mprotect
+* munmap
+* openat
+* prctl
+* pread64
+* prlimit64
+* read
+* rseq
+* set_robust_list
+* set_tid_address
+* statfs
+* syscall
+* test-xv6.py
+* user
+* write
+* xv6-LICENSE
+* xv6-README
+
+man:
+
+* access
+* arch_prctl
+* brk
+* close
+* execve
+* fcntl
+* fstat
+* futex
+* getrandom
+* ioctl
+* mmap
+* mprotect
+* munmap
+* newfstatat
+* openat
+* pread64
+* prlimit64
+* read
+* rseq
+* rt_sigaction
+* set_robust_list
+* set_tid_address
+* syscall
+* umask
+* write
+
+cd:
+* access
+* arch_prctl
+* brk
+* chdir
+* close
+* dup2
+* execve
+* fcntl
+* fstat
+* futex
+* getegid
+* geteuid
+* getgid
+* getpgrp
+* getpid
+* getppid
+* getrandom
+* getuid
+* ioctl
+* lseek
+* mmap
+* mprotect
+* munmap
+* newfstatat
+* openat
+* pread64
+* prlimit64
+* read
+* rseq
+* rt_sigaction
+* rt_sigprocmask
+* set_robust_list
+* set_tid_address
+* sysinfo
+* uname
+
+overlaps:
+* chdir
+* close
+* execve
+* fstat
+* getpid
+* read
+* write
+
+not overlaps:
+* access
+* arch_prctl
+* brk
+* dup2 (xv6 has dup, but not dup2)
+* fcntl
+* futex
+* getdents64
+* getegid
+* geteuid
+* getgid
+* getpgrp
+* getppid
+* getrandom
+* getuid
+* ioctl
+* lseek
+* mmap
+* mprotect
+* munmap
+* newfstatat
+* openat (xv6 just has open)
+* pread64
+* prctl
+* prlimit64
+* rseq
+* rt_sigaction
+* rt_sigprocmask
+* set_robust_list
+* set_tid_address
+* statfs
+* sysinfo
+* syscall
+* umask
+* uname
+
+System calls in xv6 move from user space to kernel space like this:
+
+A user program calls a library function (e.g., write). The system call number is placed in register a7, and ecall is executed.
+
+The CPU traps into the kernel. usertrap() handles the trap and calls syscall().
+
+syscall() looks up the system call number in the table and runs the correct kernel function.
+
+The result is placed in register a0. The kernel returns to user space, and the program continues.
