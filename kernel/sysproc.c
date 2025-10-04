@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "vm.h"
 
+volatile uint32 *test_dev = (uint32 *) VIRT_TEST;
 uint64
 sys_exit(void)
 {
@@ -104,4 +105,38 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_shutdown(void)
+{
+  *test_dev = 0x5555;  // MMIO write: shut down
+  return 0;
+}
+
+uint64
+sys_reboot(void)
+{
+  *test_dev = 0x7777;  // MMIO write: reboot
+  return 0;
+}
+
+uint64
+sys_rtcgettime(void)
+{
+    volatile uint32 *rtc = (uint32 *) VIRT_RTC;
+
+    uint32 lo = rtc[0];     // low 32 bits
+    uint32 hi = rtc[1];     // high 32 bits
+
+    return ((uint64)hi << 32) | lo;
+}
+
+uint64
+sys_strace_on(void)
+{
+  struct proc *p = myproc();
+  if (!p) return -1;
+  p->tracing = 1;
+  return 0;
 }

@@ -6,6 +6,7 @@
 #include "proc.h"
 #include "syscall.h"
 #include "defs.h"
+#include "strace.h"
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -101,6 +102,11 @@ extern uint64 sys_unlink(void);
 extern uint64 sys_link(void);
 extern uint64 sys_mkdir(void);
 extern uint64 sys_close(void);
+extern uint64 sys_shutdown(void);
+extern uint64 sys_reboot(void);
+extern uint64 sys_rtcgettime(void);
+extern uint64 sys_strace_on(void);
+
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -126,22 +132,53 @@ static uint64 (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_shutdown] sys_shutdown,
+[SYS_reboot]   sys_reboot,
+[SYS_rtcgettime] sys_rtcgettime,
+[SYS_strace_on] sys_strace_on,
 };
+
+// Helper to save syscall arguments before they get overwritten
+struct syscall_args {
+    uint64 a0, a1, a2, a3, a4, a5;
+};
+
+void save_syscall_args(struct proc *p, struct syscall_args *args) {
+    if (!p || !p->trapframe || !args) return;
+    args->a0 = p->trapframe->a0;
+    args->a1 = p->trapframe->a1;
+    args->a2 = p->trapframe->a2;
+    args->a3 = p->trapframe->a3;
+    args->a4 = p->trapframe->a4;
+    args->a5 = p->trapframe->a5;
+}
 
 void
 syscall(void)
 {
-  int num;
-  struct proc *p = myproc();
+    struct proc *p = myproc();
+    int num;
+    num = p->trapframe->a7;  // syscall number (x86/x64 or RISCV variant)
+    if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+        int retval = syscalls[num]();  // call handler: it returns int (or uses p->trapframe->a0)
+        // If your syscall handlers return their value in p->trapframe->a0, you may need:
+        // int retval = p->trapframe->a0; // or capture appropriately.
 
-  num = p->trapframe->a7;
-  if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->trapframe->a0
-    p->trapframe->a0 = syscalls[num]();
-  } else {
-    printf("%d %s: unknown sys call %d\n",
-            p->pid, p->name, num);
-    p->trapframe->a0 = -1;
-  }
+        // call strace if enabled
+        if(p && p->traced) {
+            strace(p, num, retval);
+        }
+
+        // write return value back to trapframe (if not already)
+        p->trapframe->a0 = retval;
+    } else {
+        printf("%d %s: unknown sys call %d\n",
+        p->pid, p->name, num);
+        p->trapframe->a0 = -1;
+    }
+    
+    uint64 retval = p->trapframe->a0;
+    if(p->tracing){
+        strace(p, num, retval);
+    }
 }

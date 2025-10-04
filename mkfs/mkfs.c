@@ -4,12 +4,18 @@
 #include <string.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
+#define dirent xv6_dirent
 #define stat xv6_stat  // avoid clash with host struct stat
 #include "kernel/types.h"
 #include "kernel/fs.h"
 #include "kernel/stat.h"
 #include "kernel/param.h"
+#undef dirent
+#undef stat
 
 #ifndef static_assert
 #define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
@@ -20,9 +26,9 @@
 // Disk layout:
 // [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
 
-int nbitmap = FSSIZE/BPB + 1;
+int nbitmap = FSSIZE/(BSIZE*8) + 1;
 int ninodeblocks = NINODES / IPB + 1;
-int nlog = LOGBLOCKS+1;   // Header followed by LOGBLOCKS data blocks.
+int nlog = LOGBLOCKS;
 int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks;  // Number of data blocks
 
@@ -65,12 +71,88 @@ xint(uint x)
   return y;
 }
 
+void
+add_file(int parent_fd, uint parentino, char *filename)
+{
+  uint inum;
+  int fd;
+  char buf[BSIZE];
+  struct xv6_dirent de;
+
+  if((fd = openat(parent_fd, filename, 0)) < 0)
+    die(filename);
+
+  inum = ialloc(T_FILE);
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(inum);
+  strncpy(de.name, filename, DIRSIZ);
+  iappend(parentino, &de, sizeof(de));
+
+  ssize_t cc;
+  while((cc = read(fd, buf, sizeof(buf))) > 0)
+    iappend(inum, buf, cc);
+
+  close(fd);
+}
+
+uint
+add_dir(int level, int parent_fd, uint parentino, char *dirname)
+{
+  struct xv6_dirent de;
+  uint dino = ialloc(T_DIR);
+  bzero(&de, sizeof(de));
+  de.inum = xshort(dino);
+  strcpy(de.name, dirname);
+  iappend(parentino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(dino);
+  strcpy(de.name, ".");
+  iappend(dino, &de, sizeof(de));
+
+  bzero(&de, sizeof(de));
+  de.inum = xshort(parentino);
+  strcpy(de.name, "..");
+  iappend(dino, &de, sizeof(de));
+
+  int dir_fd = -1;
+  if ((dir_fd = openat(parent_fd, dirname, O_RDONLY)) == -1) {
+    perror("open");
+    return dino;
+  }
+
+  DIR *d = fdopendir(dir_fd);
+  if (d == NULL) {
+    perror("fdopendir");
+    return dino;
+  }
+
+  struct dirent *e;
+  while ((e = readdir(d)) != NULL) {
+    if (e->d_name[0] == '.') {
+      continue;
+    }
+
+    if (e->d_type == DT_REG) {
+      printf("%*s+ %s\n", level * 2, "", e->d_name);
+      add_file(dir_fd, dino, e->d_name);
+    } else if (e->d_type == DT_DIR) {
+      printf("%*s+ /%s\n", level * 2, "", e->d_name);
+      add_dir(level + 1, dir_fd, dino, e->d_name);
+    }
+  }
+  close(dir_fd);
+
+  return dino;
+}
+
 int
 main(int argc, char *argv[])
 {
   int i, cc, fd;
   uint rootino, inum, off;
-  struct dirent de;
+  struct xv6_dirent de;
   char buf[BSIZE];
   struct dinode din;
 
@@ -83,7 +165,7 @@ main(int argc, char *argv[])
   }
 
   assert((BSIZE % sizeof(struct dinode)) == 0);
-  assert((BSIZE % sizeof(struct dirent)) == 0);
+  assert((BSIZE % sizeof(struct xv6_dirent)) == 0);
 
   fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
   if(fsfd < 0)
@@ -102,7 +184,7 @@ main(int argc, char *argv[])
   sb.inodestart = xint(2+nlog);
   sb.bmapstart = xint(2+nlog+ninodeblocks);
 
-  printf("nmeta %d (boot, super, log blocks %u, inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
+  printf("nmeta %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n",
          nmeta, nlog, ninodeblocks, nbitmap, nblocks, FSSIZE);
 
   freeblock = nmeta;     // the first free block that we can allocate
@@ -128,6 +210,13 @@ main(int argc, char *argv[])
   iappend(rootino, &de, sizeof(de));
 
   for(i = 2; i < argc; i++){
+    struct stat sb;
+    stat(argv[i], &sb);
+    if (S_ISDIR(sb.st_mode)) {
+      add_dir(0, AT_FDCWD, rootino, argv[i]);
+      continue;
+    }
+
     // get rid of "user/"
     char *shortname;
     if(strncmp(argv[i], "user/", 5) == 0)
@@ -147,8 +236,6 @@ main(int argc, char *argv[])
     if(shortname[0] == '_')
       shortname += 1;
 
-    assert(strlen(shortname) <= DIRSIZ);
-    
     inum = ialloc(T_FILE);
 
     bzero(&de, sizeof(de));
@@ -240,7 +327,7 @@ balloc(int used)
   int i;
 
   printf("balloc: first %d blocks have been allocated\n", used);
-  assert(used < BPB);
+  assert(used < BSIZE*8);
   bzero(buf, BSIZE);
   for(i = 0; i < used; i++){
     buf[i/8] = buf[i/8] | (0x1 << (i%8));

@@ -42,3 +42,8 @@ entry("getpid");
 entry("sbrk");
 entry("pause");
 entry("uptime");
+entry("shutdown");
+entry("reboot");
+entry("rtcgettime");
+entry("strace_on");
+

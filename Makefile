@@ -123,6 +123,8 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 UPROGS=\
+	$U/_about\
+	$U/_broken\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
@@ -142,11 +144,20 @@ UPROGS=\
 	$U/_logstress\
 	$U/_forphan\
 	$U/_dorphan\
+	$U/_shutdown\
+	$U/_sort\
+	$U/_reboot\
+	$U/_rtc\
+	$U/_tracer\
+	              
 
-fs.img: mkfs/mkfs README.md $(UPROGS)
-	mkfs/mkfs fs.img README.md $(UPROGS)
+fs.img: mkfs/mkfs README.md tests $(UPROGS)
+	mkfs/mkfs fs.img README.md tests $(UPROGS)
 
 -include kernel/*.d user/*.d
+
+kernel/strace.h: generate-traces.sh user/user.h user/usys.pl
+	./generate-traces.sh > kernel/strace.h
 
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \

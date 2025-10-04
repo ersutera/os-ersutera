@@ -168,6 +168,8 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->traced = 0;  // Clear tracing flag
+  p->tracing = 0; // Clear tracing flag
   p->state = UNUSED;
 }
 
@@ -286,6 +288,9 @@ kfork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+
+  // Copy tracing state from parent to child
+  np->traced = p->traced;
 
   pid = np->pid;
 

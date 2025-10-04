@@ -45,6 +45,14 @@ kvmmake(void)
   // the highest virtual address in the kernel.
   kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 
+  // Map QEMU shutdown/reboot device (MMIO).
+  // Writing 0x5555 shuts down, writing 0x7777 reboots.
+  kvmmap(kpgtbl, VIRT_TEST, VIRT_TEST, PGSIZE, PTE_R | PTE_W);
+
+  // Map QEMU goldfish RTC (real-time clock).
+  // This device provides the current time as a 64-bit UNIX timestamp.
+  kvmmap(kpgtbl, VIRT_RTC, VIRT_RTC, PGSIZE, PTE_R);
+
   // allocate and map a kernel stack for each process.
   proc_mapstacks(kpgtbl);
   

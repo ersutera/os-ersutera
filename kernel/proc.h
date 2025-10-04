@@ -92,6 +92,10 @@ struct proc {
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
 
+  int traced;                  // Tracing flag (0 = off, 1 = on)
+  int tracing;                 // 1 if strace enabled
+
+
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process
 

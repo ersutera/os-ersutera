@@ -20,3 +20,8 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+#define SYS_shutdown  22  // next available number after uptime
+#define SYS_reboot  23
+#define SYS_rtcgettime 24
+#define SYS_strace_on 25
+
