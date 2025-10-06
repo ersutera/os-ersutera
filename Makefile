@@ -149,10 +149,14 @@ UPROGS=\
 	$U/_reboot\
 	$U/_rtc\
 	$U/_tracer\
+	$U/_benchmark\
+	$U/_catlines\
+	$U/_catlines1\
+	$U/_catlines2\
 	              
 
-fs.img: mkfs/mkfs README.md tests $(UPROGS)
-	mkfs/mkfs fs.img README.md tests $(UPROGS)
+fs.img: mkfs/mkfs README.md tests tm.txt $(UPROGS)
+	mkfs/mkfs fs.img README.md tests tm.txt $(UPROGS)
 
 -include kernel/*.d user/*.d
 

@@ -140,3 +140,17 @@ sys_strace_on(void)
   p->tracing = 1;
   return 0;
 }
+
+uint64
+sys_wait2(void)
+{
+    uint64 ustatus;
+    uint64 usyscalls;
+
+    // Get the user-space addresses
+    argaddr(0, &ustatus);
+    argaddr(1, &usyscalls);
+
+    // Call wait2 and pass the addresses
+    return wait2(ustatus, usyscalls);
+}

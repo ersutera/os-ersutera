@@ -171,6 +171,7 @@ freeproc(struct proc *p)
   p->traced = 0;  // Clear tracing flag
   p->tracing = 0; // Clear tracing flag
   p->state = UNUSED;
+  p->syscall_count = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -660,6 +661,65 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
     return 0;
   }
 }
+
+// syscall tracing helper
+void
+strace(struct proc *p, int num, int retval)
+{
+    if (p->traced) {
+            printf("%d: syscall %d -> %d\n", p->pid, num, retval);
+    }
+
+}
+
+// Wait for a child to exit, returning its pid and filling in status/syscall count.
+int
+wait2(uint64 ustatus, uint64 usyscalls)
+{
+  struct proc *p = myproc();
+  struct proc *np;
+  int havekids, pid;
+
+  acquire(&wait_lock);
+
+  for(;;){
+    havekids = 0;
+    for(np = proc; np < &proc[NPROC]; np++){
+      if(np->parent == p){
+        havekids = 1;
+        acquire(&np->lock);
+        if(np->state == ZOMBIE){
+          pid = np->pid;
+          if(ustatus != 0 &&
+             copyout(p->pagetable, ustatus, (char *)&np->xstate,
+                     sizeof(np->xstate)) < 0){
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          if(usyscalls != 0 &&
+             copyout(p->pagetable, usyscalls, (char *)&np->syscall_count,
+                     sizeof(np->syscall_count)) < 0){
+            release(&np->lock);
+            release(&wait_lock);
+            return -1;
+          }
+          freeproc(np);
+          release(&np->lock);
+          release(&wait_lock);
+          return pid;
+        }
+        release(&np->lock);
+      }
+    }
+    if(!havekids || killed(p)){
+      release(&wait_lock);
+      return -1;
+    }
+    sleep(p, &wait_lock);
+  }
+}
+
 
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.

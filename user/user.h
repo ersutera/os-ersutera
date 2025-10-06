@@ -28,6 +28,7 @@ int shutdown(void);
 int reboot(void);
 uint64 rtcgettime(void);
 int strace_on(void);
+int wait2(int *status, int *syscall_count);
 
 // ulib.c
 int stat(const char*, struct stat*);

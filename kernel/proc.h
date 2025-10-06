@@ -81,9 +81,17 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+void strace(struct proc *p, int num, int retval);
+
+int wait2(uint64 ustatus, uint64 usyscalls);
+
+
 // Per-process state
 struct proc {
   struct spinlock lock;
+  int syscalls;
+  int syscall_count;   // number of syscalls this process has made
+    
 
   // p->lock must be held when using these:
   enum procstate state;        // Process state

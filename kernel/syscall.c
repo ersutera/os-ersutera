@@ -106,6 +106,7 @@ extern uint64 sys_shutdown(void);
 extern uint64 sys_reboot(void);
 extern uint64 sys_rtcgettime(void);
 extern uint64 sys_strace_on(void);
+extern uint64 sys_wait2(void);
 
 
 // An array mapping syscall numbers from syscall.h
@@ -136,6 +137,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_reboot]   sys_reboot,
 [SYS_rtcgettime] sys_rtcgettime,
 [SYS_strace_on] sys_strace_on,
+[SYS_wait2]   sys_wait2,
 };
 
 // Helper to save syscall arguments before they get overwritten
@@ -159,6 +161,8 @@ syscall(void)
     struct proc *p = myproc();
     int num;
     num = p->trapframe->a7;  // syscall number (x86/x64 or RISCV variant)
+    p->syscall_count++;
+    
     if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
         int retval = syscalls[num]();  // call handler: it returns int (or uses p->trapframe->a0)
         // If your syscall handlers return their value in p->trapframe->a0, you may need:

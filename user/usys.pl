@@ -46,4 +46,6 @@ entry("shutdown");
 entry("reboot");
 entry("rtcgettime");
 entry("strace_on");
+entry("wait2");
+
 
