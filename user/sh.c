@@ -143,10 +143,24 @@ getcmd(char *buf, int nbuf)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
   static char buf[100];
   int fd;
+
+  // If a script file is provided as argv[1], open it and replace stdin.
+  if (argc > 1) {
+    fd = open(argv[1], O_RDONLY);
+    if (fd < 0) {
+      fprintf(2, "sh: cannot open %s\n", argv[1]);
+      exit(1);
+    }
+    if (fd != 0) {
+      close(0);
+      dup(fd);
+      close(fd);
+    }
+  }
 
   // Ensure that three file descriptors are open.
   while((fd = open("console", O_RDWR)) >= 0){
@@ -161,11 +175,14 @@ main(void)
     char *cmd = buf;
     while (*cmd == ' ' || *cmd == '\t')
       cmd++;
-    if (*cmd == '\n') // is a blank command
+    if (*cmd == '\n')
       continue;
+
+    if (cmd[0] == '#')  // Ignore comments / shebang
+      continue;
+
     if(cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' '){
-      // Chdir must be called by the parent, not the child.
-      cmd[strlen(cmd)-1] = 0;  // chop \n
+      cmd[strlen(cmd)-1] = 0;
       if(chdir(cmd+3) < 0)
         fprintf(2, "cannot cd %s\n", cmd+3);
     } else {
@@ -176,6 +193,7 @@ main(void)
   }
   exit(0);
 }
+
 
 void
 panic(char *s)

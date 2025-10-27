@@ -5,6 +5,8 @@
 #include "kernel/vm.h"
 #include "user/user.h"
 
+#define NULL 0
+
 //
 // wrapper so that it's OK if main() does not call exit().
 //
@@ -158,3 +160,70 @@ sbrklazy(int n) {
   return sys_sbrk(n, SBRK_LAZY);
 }
 
+// Reads contents of given file ('fd') to 'buf' of size 'max'.
+// 
+// Returns character's read, excluding null terminator.
+int
+fgets(char *buf, unsigned int max, int fd)
+{
+  int i, cc;
+  char c;
+
+  for(i=0; i+1 < max; ){
+    cc = read(fd, &c, 1);
+    if(cc < 1) {
+      return -1;
+    }
+    buf[i++] = c;
+    if(c == '\n' || c == '\r'){
+      break;
+    }
+  }
+
+  buf[i] = '\0';
+  return i;
+}
+
+// Like fgets, but dynamically allocates correct memory
+// to store the string.
+//
+// Caller provides pointer to a malloced 'buf' and capacity ('size').
+// 'buf' points to NULL, a new buffer is allocated. 
+// Returns characters read, excluding null terminator.
+int
+getline(char **buf, int size, int fd)
+{
+  int chars_read = 0;
+  int curr_read;
+
+  // initilize buffer if not already initilized  (size = 2, malloc space for a char + /0)
+  if (*buf == NULL || size < 2) {		
+    free(*buf);	// in case buf was 1 (if null, does nothing)
+    *buf = malloc(2);
+    size = 2;
+  }
+
+  while ((curr_read = fgets(*buf + chars_read, size - chars_read, fd))) {
+
+    if (curr_read < 0) {  // error in fgets
+      return - 1;
+    }
+
+    chars_read += curr_read;
+
+    //resize 
+    char *temp = malloc(size * 2);
+    memcpy(temp, *buf, chars_read + 1); // include null term
+    free(*buf);
+    *buf = temp;
+    size = size * 2;
+
+    // break if end of line/eof
+    char *last_char = *buf + (chars_read - 1);
+    if (strcmp(last_char, "\n") == 0 || strcmp(last_char, "\r") == 0) {
+      break;
+    }
+  }
+
+  return chars_read;
+}
