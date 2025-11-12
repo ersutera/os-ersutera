@@ -20,6 +20,7 @@ int link(const char* oldpath, const char* newpath);
 int mkdir(const char* pathname);
 int chdir(const char* path);
 int dup(int fd);
+void dup2(int oldfd, int newfd);
 int getpid(void);
 char* sys_sbrk(int increment, int type);
 int pause(int ticks);
