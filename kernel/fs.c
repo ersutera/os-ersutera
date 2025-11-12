@@ -718,3 +718,61 @@ nameiparent(char *path, char *name)
 {
   return namex(path, 1, name);
 }
+
+// Find the name of a directory entry within 'dp' whose inode number matches 'inum'.
+// Returns 0 on success, -1 on failure.
+int
+findname(struct inode *dp, uint inum, char *name)
+{
+  struct dirent de;
+
+  if (dp->type != T_DIR)
+    return -1;
+
+  // Read each directory entry in 'dp'
+  for (int off = 0; off < dp->size; off += sizeof(de)) {
+    if (readi(dp, 0, (uint64)&de, off, sizeof(de)) != sizeof(de))
+      panic("findname: readi");
+
+    if (de.inum == inum) {
+      safestrcpy(name, de.name, DIRSIZ);
+      return 0;
+    }
+  }
+
+  return -1;
+}
+
+int
+getcwd_path(struct inode *ip, char *buf, int size)
+{
+  // Traverse up the filesystem until reaching root
+  struct inode *parent;
+  char name[DIRSIZ];
+  int len = 0;
+
+  while (ip != namei("/")) {
+    parent = dirlookup(ip, "..", 0);
+    if (parent == 0)
+      break;
+
+    ilock(parent);
+    findname(parent, ip->inum, name);
+    iunlock(parent);
+
+    int n = strlen(name);
+    if (len + n + 2 > size)
+      break;
+
+    memmove(buf + len + 1, buf, len);
+    buf[0] = '/';
+    memmove(buf + 1, name, n);
+    len += n + 1;
+
+    iput(ip);
+    ip = parent;
+  }
+
+  buf[len] = '\0';
+  return len;
+}

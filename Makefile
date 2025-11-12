@@ -152,11 +152,14 @@ UPROGS=\
 	$U/_benchmark\
 	$U/_tolower\
 	$U/_fnr\
-	$U/_leetify
+	$U/_leetify\
+	$U/_smash\
+	$U/_nice\
+	$U/_spinner\
 	              
 
-fs.img: mkfs/mkfs README.md tests tm.txt script.sh input.txt $(UPROGS)
-	mkfs/mkfs fs.img README.md tests tm.txt script.sh input.txt $(UPROGS)
+fs.img: mkfs/mkfs README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh $(UPROGS)
+	mkfs/mkfs fs.img README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh $(UPROGS)
 
 -include kernel/*.d user/*.d
 

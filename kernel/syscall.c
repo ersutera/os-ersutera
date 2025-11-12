@@ -107,6 +107,9 @@ extern uint64 sys_reboot(void);
 extern uint64 sys_rtcgettime(void);
 extern uint64 sys_strace_on(void);
 extern uint64 sys_wait2(void);
+extern uint64 sys_getcwd(void);
+extern uint64 sys_setnice(void);
+
 
 
 // An array mapping syscall numbers from syscall.h
@@ -138,6 +141,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_rtcgettime] sys_rtcgettime,
 [SYS_strace_on] sys_strace_on,
 [SYS_wait2]   sys_wait2,
+[SYS_getcwd] sys_getcwd,
+[SYS_setnice]    sys_setnice,
 };
 
 // Helper to save syscall arguments before they get overwritten

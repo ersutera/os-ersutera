@@ -26,8 +26,6 @@ struct cpu {
   int intena;                 // Were interrupts enabled before push_off()?
 };
 
-extern struct cpu cpus[NCPU];
-
 // per-process data for the trap handling code in trampoline.S.
 // sits in a page by itself just under the trampoline page in the
 // user page table. not specially mapped in the kernel page table.
@@ -116,4 +114,13 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  int nice;      // niceness (0..3) where 0 = highest priority, 3 = lowest nice
+  int priority;  // effective priority (0..3) where 3 = highest scheduling priority
 };
+
+extern struct cpu cpus[NCPU];
+extern struct proc proc[NPROC];
+extern struct spinlock pid_lock;
+extern int nextpid;
+extern struct proc *initproc;

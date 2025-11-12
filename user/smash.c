@@ -49,6 +49,16 @@ strcspn(const char *str, const char *chars)
   }
 }
 
+int
+safestrcpy(char *s, const char *t, int n)
+{
+    int i;
+    for(i = 0; i < n-1 && t[i]; i++)
+        s[i] = t[i];
+    s[i] = '\0';
+    return i;
+}
+
 char
 *next_token(char **str_ptr, const char *delim)
 {

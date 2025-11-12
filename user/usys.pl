@@ -47,5 +47,8 @@ entry("reboot");
 entry("rtcgettime");
 entry("strace_on");
 entry("wait2");
+entry("getcwd");
+entry("setnice");
+
 
 

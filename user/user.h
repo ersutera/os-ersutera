@@ -29,6 +29,8 @@ int reboot(void);
 uint64 rtcgettime(void);
 int strace_on(void);
 int wait2(int *status, int *syscall_count);
+int getcwd(char *buf, int size);
+
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -54,3 +56,5 @@ void printf(const char*, ...) __attribute__ ((format (printf, 1, 2)));
 // umalloc.c
 void* malloc(uint);
 void free(void*);
+
+int setnice(int);

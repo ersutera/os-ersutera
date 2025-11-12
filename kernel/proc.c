@@ -7,13 +7,11 @@
 #include "defs.h"
 
 struct cpu cpus[NCPU];
-
 struct proc proc[NPROC];
-
-struct proc *initproc;
-
 int nextpid = 1;
 struct spinlock pid_lock;
+struct proc *initproc;
+
 
 extern void forkret(void);
 static void freeproc(struct proc *p);
@@ -119,6 +117,11 @@ allocproc(void)
       release(&p->lock);
     }
   }
+
+  // after p->state = USED / or whatever you do in allocproc
+  p->nice = 0;         // default niceness (0 = high priority)
+  p->priority = 3 - p->nice; // default priority = 3
+  
   return 0;
 
 found:
@@ -427,42 +430,46 @@ kwait(uint64 addr)
 void
 scheduler(void)
 {
-  struct proc *p;
+  //struct proc *p;
   struct cpu *c = mycpu();
-
   c->proc = 0;
   for(;;){
-    // The most recent process to run may have had interrupts
-    // turned off; enable them to avoid a deadlock if all
-    // processes are waiting. Then turn them back off
-    // to avoid a possible race between an interrupt
-    // and wfi.
-    intr_on();
-    intr_off();
+      // enable interrupts on this CPU.
+      intr_on();
 
-    int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
-
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-        found = 1;
+      // Find maximum priority among RUNNABLE processes (0..3)
+      int maxprio = 0;
+      struct proc *p;
+      for(p = proc; p < &proc[NPROC]; p++){
+        acquire(&p->lock);
+        if(p->state == RUNNABLE && p->priority > maxprio)
+          maxprio = p->priority;
+        release(&p->lock);
       }
-      release(&p->lock);
+
+      // iterate from highest priority down to lowest.
+      for(int target = maxprio; target >= 0; --target){
+        for(p = proc; p < &proc[NPROC]; p++){
+          acquire(&p->lock);
+          if(p->state != RUNNABLE || p->priority < target){
+            release(&p->lock);
+            continue;
+          }
+
+          // Found runnable process with priority >= target
+          p->state = RUNNING;
+          // switch to it
+          c->proc = p;
+          swtch(&c->context, &p->context);
+          // back here after process yields
+          c->proc = 0;
+          release(&p->lock);
+
+          // optional: recompute maxprio to skip remaining levels if no higher ones exist
+          // (simple optimization—safe to omit if you want simpler code)
+        }
+      }
     }
-    if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
-      asm volatile("wfi");
-    }
-  }
 }
 
 // Switch to scheduler.  Must hold only p->lock
@@ -737,16 +744,24 @@ procdump(void)
   };
   struct proc *p;
   char *state;
-
+  
   printf("\n");
   for(p = proc; p < &proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+    if(p->state >= 0 && p->state < NELEM(states) && states[p->state]) {
       state = states[p->state];
-    else
+    } else {
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
+    }
+    acquire(&p->lock);
+    if (p->state == RUNNING) {
+        printf("%d %s  pid %d state RUNNING prio %d\n", p->pid, p->name, p->pid, p->priority);
+    } else {
+            printf("%d %s  state %d prio %d ...\n", p->pid, p->name, p->state, p->priority);
+    }
+    printf("%s", state);
+    release(&p->lock);
     printf("\n");
   }
 }
