@@ -158,8 +158,8 @@ UPROGS=\
 	$U/_spinner\
 	              
 
-fs.img: mkfs/mkfs README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh $(UPROGS)
-	mkfs/mkfs fs.img README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh $(UPROGS)
+fs.img: mkfs/mkfs README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh 1.sh 2.sh 3.sh 4.sh $(UPROGS)
+	mkfs/mkfs fs.img README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh 1.sh 2.sh 3.sh 4.sh $(UPROGS)
 
 -include kernel/*.d user/*.d
 
