@@ -48,8 +48,9 @@ kfree(void *pa)
 {
   struct run *r;
 
-  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+  if(((uint64)pa % PGSIZE) != 0 || (uint64)pa >= PHYSTOP)
     panic("kfree");
+    
 
   // Fill with junk to catch dangling refs.
   memset(pa, 1, PGSIZE);
@@ -65,18 +66,30 @@ kfree(void *pa)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
-void *
+uint64
+freemem(void)
+{
+    acquire(&kmem.lock);
+    struct run *r = kmem.freelist;
+    int pages = 0;
+    while (r) {
+        pages++;
+        r = r->next;
+    }
+    release(&kmem.lock);
+    return (uint64) pages * (PGSIZE / 1024);
+}
+
+void*
 kalloc(void)
 {
-  struct run *r;
+    struct run *r;
 
-  acquire(&kmem.lock);
-  r = kmem.freelist;
-  if(r)
-    kmem.freelist = r->next;
-  release(&kmem.lock);
+    acquire(&kmem.lock);
+    r = kmem.freelist;
+    if(r) {kmem.freelist = r->next;}
+    release(&kmem.lock);
 
-  if(r)
-    memset((char*)r, 5, PGSIZE); // fill with junk
-  return (void*)r;
+    if(r) {memset((char*)r, 5, PGSIZE);} // fill with junk
+    return (void*)r;               
 }

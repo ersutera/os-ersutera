@@ -59,3 +59,17 @@ void* malloc(uint);
 void free(void*);
 
 int setnice(int);
+
+int mmap(uint64 addr, int length, int prot, int flags, int fd, int offset);
+int munmap(uint64 addr, int length);
+
+// mmap protection flags
+#define PROT_READ  1
+#define PROT_WRITE 2
+
+// mmap mapping flags
+#define MAP_ANON    1
+#define MAP_PRIVATE 2
+
+
+int freemem(void); 

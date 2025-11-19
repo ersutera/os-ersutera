@@ -156,6 +156,10 @@ UPROGS=\
 	$U/_smash\
 	$U/_nice\
 	$U/_spinner\
+	$U/_freemem\
+	$U/_map1\
+	$U/_map2\
+	$U/_map3\
 	              
 
 fs.img: mkfs/mkfs README.md tests tm.txt script.sh input.txt spin1.sh spin2.sh 1.sh 2.sh 3.sh 4.sh $(UPROGS)

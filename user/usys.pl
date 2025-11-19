@@ -49,6 +49,6 @@ entry("strace_on");
 entry("wait2");
 entry("getcwd");
 entry("setnice");
-
-
-
+entry("freemem");
+entry("mmap");
+entry("munmap");

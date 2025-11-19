@@ -27,3 +27,8 @@
 #define SYS_wait2  26
 #define SYS_getcwd 27
 #define SYS_setnice  28
+#define SYS_mmap   29
+#define SYS_munmap 30
+#define SYS_freemem  31
+
+

@@ -127,6 +127,10 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  // initialize mmap regions
+  for (int i = 0; i < MAX_MMAPS; i++) {
+    p->mmaps[i].used = 0;
+  }
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -173,6 +177,12 @@ freeproc(struct proc *p)
   p->xstate = 0;
   p->traced = 0;  // Clear tracing flag
   p->tracing = 0; // Clear tracing flag
+
+  // clear mmap regions
+  for (int i = 0; i < MAX_MMAPS; i++) {
+    p->mmaps[i].used = 0;
+  }
+  
   p->state = UNUSED;
   p->syscall_count = 0;
 }
@@ -764,4 +774,58 @@ procdump(void)
     release(&p->lock);
     printf("\n");
   }
+
 }
+
+uint64
+kmmap(uint64 addr, int length, int prot, int flags, int fd, int offset)
+{
+    struct proc *p = myproc();
+    if (length != PGSIZE)
+        return -1;
+
+    if (addr == 0)
+        addr = 0x40000000UL;
+
+    char *mem = kalloc();
+    if (mem == 0)
+        return -1;
+
+    if (mappages(p->pagetable, addr, PGSIZE, (uint64)mem, PTE_U | PTE_R | PTE_W) < 0){
+        kfree(mem);
+        return -1;
+    }
+
+    // store in mmaps[]
+    for (int i = 0; i < MAX_MMAPS; i++) {
+        if (!p->mmaps[i].used) {
+            p->mmaps[i].used = 1;
+            p->mmaps[i].addr = addr;
+            p->mmaps[i].pa = (uint64)mem;
+            break;
+        }
+    }
+
+    // **IMPORTANT**: update process size if addr is beyond current size
+    if (addr + PGSIZE > p->sz)
+        p->sz = addr + PGSIZE;
+
+    return addr;
+}
+
+uint64
+kmunmap(uint64 addr, int length)
+{
+    struct proc *p = myproc();
+
+    for (int i = 0; i < MAX_MMAPS; i++) {
+        if (p->mmaps[i].used && p->mmaps[i].addr == addr) {
+            uvmunmap(p->pagetable, addr, 1, 1);  // removes + frees
+            p->mmaps[i].used = 0;
+            return 0;
+        }
+    }
+
+    return -1;
+}
+

@@ -109,6 +109,9 @@ extern uint64 sys_strace_on(void);
 extern uint64 sys_wait2(void);
 extern uint64 sys_getcwd(void);
 extern uint64 sys_setnice(void);
+extern uint64 sys_mmap(void);
+extern uint64 sys_munmap(void);
+extern uint64 sys_freemem(void);
 
 
 
@@ -143,6 +146,11 @@ static uint64 (*syscalls[])(void) = {
 [SYS_wait2]   sys_wait2,
 [SYS_getcwd] sys_getcwd,
 [SYS_setnice]    sys_setnice,
+[SYS_mmap]   sys_mmap,
+[SYS_munmap] sys_munmap,
+[SYS_freemem] sys_freemem,
+
+
 };
 
 // Helper to save syscall arguments before they get overwritten

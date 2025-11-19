@@ -131,6 +131,12 @@ kexec(char *path, char **argv)
   sp = sz;
   stackbase = sp - USERSTACK*PGSIZE;
 
+  // Initialize mmap region: place it just below the trapframe/stack region.
+  // mmap_base is the top (exclusive) of the mmap area; mmap_next grows downward.
+  p->mmap_base = TRAPFRAME - (USERSTACK * PGSIZE);
+  p->mmap_next = p->mmap_base;
+          
+
   // Copy arguments into stack
   for(argc = 0; argv[argc]; argc++){
     if(argc >= MAXARG)
