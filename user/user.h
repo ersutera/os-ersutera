@@ -61,7 +61,8 @@ void malloc_scribble(int);
 void malloc_setfsm(int);
 void malloc_print(void);
 void malloc_leaks(void);
-
+void* calloc(uint, uint);
+void* realloc(void *, uint);
 
 int setnice(int);
 
